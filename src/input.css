@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+}
+
+.dropzone-active {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+}
+
+.page-card-dragging {
+  opacity: 0.45;
+  transform: scale(0.97);
+}
+
+.page-card-dragover {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* Paper sheet shadow effect for scanned previews */
+.scanned-sheet {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.08);
+}

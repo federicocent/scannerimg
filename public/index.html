@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScannerPDF — Escáner de Imágenes a PDF</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+
+  <!-- Top Navigation / Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-6 4h4" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">ScannerPDF</h1>
+          <p class="text-xs text-slate-500">Detección automática de hoja + ajuste manual y exportación a PDF</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <label
+          for="fileInputHeader"
+          class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+        >
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Agregar imágenes</span>
+          <input id="fileInputHeader" type="file" accept="image/*" multiple class="hidden" />
+        </label>
+
+        <button
+          id="btnDownloadTop"
+          type="button"
+          disabled
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white shadow-xs transition cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+          </svg>
+          <span>Descargar PDF</span>
+          <span id="badgeCountTop" class="hidden px-1.5 py-0.5 text-xs rounded-full bg-blue-800 text-white">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Status / Alert Banner -->
+    <div id="statusBanner" class="hidden rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-2.5">
+        <span id="statusSpinner" class="hidden w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+        <span id="statusText"></span>
+      </div>
+      <button id="statusClose" type="button" class="text-xs underline opacity-80 hover:opacity-100 cursor-pointer">Cerrar</button>
+    </div>
+
+    <!-- Step 1: Upload Dropzone -->
+    <section
+      id="dropzone"
+      class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white rounded-2xl p-8 text-center transition cursor-pointer shadow-xs"
+    >
+      <input id="fileInputMain" type="file" accept="image/*" multiple class="hidden" />
+      <div class="max-w-lg mx-auto flex flex-col items-center">
+        <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 mb-1">
+          Sube o arrastra tus imágenes aquí para escanearlas
+        </h2>
+        <p class="text-sm text-slate-500 mb-5">
+          Detectamos y recortamos la hoja automáticamente al subir cada foto. Si quieres ajustar algún borde a mano, pulsa <strong>"Modificar recorte"</strong> en cualquier página.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <span class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-xs transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Seleccionar imágenes
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls & Pages Workspace -->
+    <section id="workspaceSection" class="hidden space-y-6">
+
+      <!-- Global Scan & PDF Configuration Bar -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+
+          <!-- Scan Filter Mode -->
+          <div class="lg:col-span-4">
+            <label for="globalMode" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              Efecto de Escaneo
+            </label>
+            <select
+              id="globalMode"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="magic_color" selected>Color Mágico (Quita sombras y blanquea papel)</option>
+              <option value="bw">Blanco y Negro Nítido (Texto láser)</option>
+              <option value="grayscale">Escala de Grises (Documento limpio)</option>
+              <option value="original">Original (Sin filtro de escaneo)</option>
+            </select>
+          </div>
+
+          <!-- Scan Contrast / Intensity -->
+          <div class="lg:col-span-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="globalIntensity" class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Intensidad / Contraste
+              </label>
+              <span id="intensityValueLabel" class="text-xs font-bold text-blue-600">60%</span>
+            </div>
+            <input
+              id="globalIntensity"
+              type="range"
+              min="10"
+              max="95"
+              step="5"
+              value="60"
+              class="w-full accent-blue-600 cursor-pointer"
+            />
+          </div>
+
+          <!-- Auto-crop default checkbox (checked by default!) + Apply to all button -->
+          <div class="lg:col-span-5 flex flex-wrap items-center justify-between lg:justify-end gap-2.5">
+            <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none mr-2">
+              <input id="autoCropCheck" type="checkbox" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" />
+              <span>Recorte automático de hoja al subir</span>
+            </label>
+
+            <button
+              id="btnApplyAll"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Aplicar filtro a todas
+            </button>
+
+            <button
+              id="btnClearAll"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Vaciar todo
+            </button>
+          </div>
+        </div>
+
+        <hr class="border-slate-200" />
+
+        <!-- PDF Output Settings -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+          <div class="lg:col-span-4">
+            <label for="pdfFilename" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              Nombre del archivo PDF
+            </label>
+            <div class="relative flex items-center">
+              <input
+                id="pdfFilename"
+                type="text"
+                value="documento-escaneado"
+                placeholder="documento-escaneado"
+                class="w-full rounded-xl border border-slate-300 bg-slate-50 pl-3 pr-12 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span class="absolute right-3 text-xs font-semibold text-slate-400 select-none">.pdf</span>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label for="pdfPageSize" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              Tamaño de página
+            </label>
+            <select
+              id="pdfPageSize"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="A4" selected>Hoja A4</option>
+              <option value="letter">Hoja Carta (Letter)</option>
+              <option value="fit">Ajustar a cada imagen</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label for="pdfOrientation" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              Orientación
+            </label>
+            <select
+              id="pdfOrientation"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="auto" selected>Automática</option>
+              <option value="portrait">Vertical</option>
+              <option value="landscape">Horizontal</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label for="pdfMargin" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              Margen de hoja
+            </label>
+            <select
+              id="pdfMargin"
+              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="none">Sin margen</option>
+              <option value="small" selected>Pequeño</option>
+              <option value="normal">Normal</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-2">
+            <button
+              id="btnDownloadMain"
+              type="button"
+              class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+              </svg>
+              <span>Crear PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pages Grid Header -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <h3 class="text-base font-bold text-slate-900">
+            Páginas del PDF (<span id="pagesCountText">0</span>)
+          </h3>
+          <span class="text-xs text-slate-500">
+            — Si el recorte automático de una hoja no te convence, pulsa <strong>"Modificar recorte"</strong> en su tarjeta
+          </span>
+        </div>
+      </div>
+
+      <!-- Scanned Pages Grid -->
+      <div
+        id="pagesGrid"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
+      ></div>
+    </section>
+  </main>
+
+  <!-- Interactive 4-Corner & 4-Edge Manual Crop Modal -->
+  <div
+    id="cropModal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+  >
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between gap-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Ajustar Recorte de la Hoja</h3>
+          <p class="text-xs text-slate-500">
+            Arrastra cualquiera de las <strong>4 esquinas</strong> (círculos) o los <strong>4 bordes</strong> (barras) para ajustar el área exacta de la hoja.
+          </p>
+        </div>
+        <button
+          id="btnCloseCropModal"
+          type="button"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Interactive Canvas Stage -->
+      <div class="relative flex-1 bg-slate-950 flex items-center justify-center p-5 overflow-auto select-none">
+        <!-- Magnifier Loupe (shown while dragging a corner/edge) -->
+        <div
+          id="cropLoupe"
+          class="hidden fixed z-50 w-28 h-28 rounded-full border-3 border-blue-500 shadow-2xl pointer-events-none overflow-hidden bg-slate-900"
+        >
+          <canvas id="cropLoupeCanvas" width="112" height="112" class="w-full h-full block"></canvas>
+          <!-- Crosshair inside loupe -->
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="w-full h-px bg-blue-400/80"></div>
+          </div>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="h-full w-px bg-blue-400/80"></div>
+          </div>
+        </div>
+
+        <div id="cropStage" class="relative inline-block">
+          <img
+            id="cropBaseImage"
+            alt="Documento original sin recortar"
+            class="max-h-[62vh] max-w-full block select-none pointer-events-none rounded-xs"
+          />
+          <svg
+            id="cropSvgOverlay"
+            class="absolute inset-0 w-full h-full pointer-events-none"
+          >
+            <polygon
+              id="cropPolygon"
+              fill="rgba(37, 99, 235, 0.20)"
+              stroke="#3b82f6"
+              stroke-width="2.5"
+            />
+          </svg>
+
+          <!-- 4 Edge Midpoint Handles: 0=Top, 1=Right, 2=Bottom, 3=Left -->
+          <div
+            data-edge="0"
+            title="Arrastrar borde superior"
+            class="crop-edge-handle absolute w-8 h-3 -ml-4 -mt-1.5 rounded-full bg-white border-2 border-blue-600 shadow-md cursor-ns-resize"
+          ></div>
+          <div
+            data-edge="1"
+            title="Arrastrar borde derecho"
+            class="crop-edge-handle absolute w-3 h-8 -ml-1.5 -mt-4 rounded-full bg-white border-2 border-blue-600 shadow-md cursor-ew-resize"
+          ></div>
+          <div
+            data-edge="2"
+            title="Arrastrar borde inferior"
+            class="crop-edge-handle absolute w-8 h-3 -ml-4 -mt-1.5 rounded-full bg-white border-2 border-blue-600 shadow-md cursor-ns-resize"
+          ></div>
+          <div
+            data-edge="3"
+            title="Arrastrar borde izquierdo"
+            class="crop-edge-handle absolute w-3 h-8 -ml-1.5 -mt-4 rounded-full bg-white border-2 border-blue-600 shadow-md cursor-ew-resize"
+          ></div>
+
+          <!-- 4 Draggable Corner Handles: 0=TL, 1=TR, 2=BR, 3=BL -->
+          <div
+            data-corner="0"
+            title="Esquina superior izquierda"
+            class="crop-handle absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full bg-blue-600 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+          </div>
+          <div
+            data-corner="1"
+            title="Esquina superior derecha"
+            class="crop-handle absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full bg-blue-600 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+          </div>
+          <div
+            data-corner="2"
+            title="Esquina inferior derecha"
+            class="crop-handle absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full bg-blue-600 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+          </div>
+          <div
+            data-corner="3"
+            title="Esquina inferior izquierda"
+            class="crop-handle absolute w-7 h-7 -ml-3.5 -mt-3.5 rounded-full bg-blue-600 border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            id="btnAutoDetectCorners"
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Re-detectar hoja automáticamente
+          </button>
+          <button
+            id="btnFullFrameCorners"
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-200 hover:bg-slate-300 text-slate-700 transition cursor-pointer"
+          >
+            Usar imagen completa (Sin recorte)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="btnCancelCrop"
+            type="button"
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btnApplyCrop"
+            type="button"
+            class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
+          >
+            Guardar recorte
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-size Preview Lightbox Modal -->
+  <div
+    id="previewModal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div class="relative max-w-4xl max-h-[92vh] flex flex-col items-center">
+      <button
+        id="btnClosePreviewModal"
+        type="button"
+        class="mb-2 self-end px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold cursor-pointer"
+      >
+        Cerrar vista previa ✕
+      </button>
+      <img
+        id="previewModalImg"
+        alt="Vista previa escaneada"
+        class="max-h-[84vh] max-w-full rounded-lg shadow-2xl bg-white"
+      />
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
